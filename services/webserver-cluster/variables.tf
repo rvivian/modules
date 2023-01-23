@@ -31,3 +31,9 @@ variable "min_size" {
 variable "max_size" {
   description = "The maximum number of EX2 Intances in the ASG"
 }
+
+variable "custom_tags" {
+  description = "Custom tags to set ont he Instances in the ASG"
+  type        = map(string)
+  default     = {}
+}
