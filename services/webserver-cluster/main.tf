@@ -14,7 +14,6 @@ resource "aws_launch_configuration" "example" {
 resource "aws_autoscaling_group" "example" {
   launch_configuration = aws_launch_configuration.example.name
   vpc_zone_identifier  = data.aws_subnet_ids.default.ids
-  availability_zones =  ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   target_group_arns = [aws_lb_target_group.asg.arn]
   health_check_type = "ELB"
@@ -31,7 +30,7 @@ resource "aws_autoscaling_group" "example" {
   dynamic "tag" {
     for_each = var.custom_tags
 
-    content = {
+    content {
       key                 = tag.key
       value               = tag.value
       propagate_at_launch = true
