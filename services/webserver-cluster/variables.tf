@@ -37,3 +37,15 @@ variable "custom_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "ami" {
+  description = "The AMI to run in the cluster"
+  default = "ami-095413544ce52437d"
+  type = string
+}
+
+variable "server_text" {
+  description = "The text the web server should return"
+  default = "Hello, World"
+  type = string
+}

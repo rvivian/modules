@@ -1,5 +1,5 @@
 resource "aws_launch_configuration" "example" {
-  image_id        = "ami-095413544ce52437d"
+  image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
   user_data       = data.template_file.user_data.rendered
@@ -14,6 +14,7 @@ resource "aws_launch_configuration" "example" {
 resource "aws_autoscaling_group" "example" {
   launch_configuration = aws_launch_configuration.example.name
   vpc_zone_identifier  = data.aws_subnet_ids.default.ids
+  availability_zones =  ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   target_group_arns = [aws_lb_target_group.asg.arn]
   health_check_type = "ELB"
@@ -155,6 +156,7 @@ data "template_file" "user_data" {
     server_port = var.server_port
     db_address  = data.terraform_remote_state.db.outputs.address
     db_port     = data.terraform_remote_state.db.outputs.port
+    server_text = var.server_text
   }
 }
 
