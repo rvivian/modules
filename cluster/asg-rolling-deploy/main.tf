@@ -1,5 +1,5 @@
 resource "aws_launch_configuration" "example" {
-  image_id        = var.ami
+  image_id        = data.aws_ami.ubuntu_ami.id
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
   user_data       = var.user_data
@@ -137,6 +137,16 @@ output "asg_name" {
 output "instance_security_group_id" {
   value       = aws_security_group.instance.id
   description = "The ID of the EC2 Instance Security Group"
+}
+
+data "aws_ami" "ubuntu_ami" {
+  most_recent = true
+  owners = ["099720109477"] # Canonical
+
+  filter {
+    name = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
 }
 
 locals {
