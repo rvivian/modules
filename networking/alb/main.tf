@@ -46,21 +46,6 @@ resource "aws_security_group_rule" "allow_all_outbound" {
   cidr_blocks = local.all_ips
 }
 
-output "alb_dns_name" {
-  value       = aws_lb.example.dns_name
-  description = "The domain name of the local balancer"
-}
-
-output "alb_http_listener_arn" {
-  value       = aws_lb_listener.http.arn
-  description = "The ARN of the HTTP listener"
-}
-
-output "alb_security_group_id" {
-  value       = aws_security_group.alb.id
-  description = "The ALB Security Group ID"
-}
-
 locals {
   http_port    = 80
   any_port     = 0

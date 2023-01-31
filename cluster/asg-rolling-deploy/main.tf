@@ -8,6 +8,10 @@ resource "aws_launch_configuration" "example" {
   # https://www.terraform.io/docs/providers/aws/r/launch_configuration.html
   lifecycle {
     create_before_destroy = true
+    precondition {
+      condition = data.aws_ec2_instance_type.instance.free_tier_eligible
+      error_message = "${var.instance_type} is not part of the AWS Free Tier!"
+    }
   }
 }
 
@@ -33,6 +37,10 @@ resource "aws_autoscaling_group" "example" {
   # original after
   lifecycle {
     create_before_destroy = true
+    postcondition {
+      condition = length(self.availability_zones) > 1
+      error_message = "You must use more than one AZ for high availabilty!"
+    }
   }
 
   tag {
@@ -129,16 +137,6 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
   unit                 = "Count"
 }
 
-output "asg_name" {
-  value       = aws_autoscaling_group.example.name
-  description = "The name of the Autoscaling Group"
-}
-
-output "instance_security_group_id" {
-  value       = aws_security_group.instance.id
-  description = "The ID of the EC2 Instance Security Group"
-}
-
 data "aws_ami" "ubuntu_ami" {
   most_recent = true
   owners = ["099720109477"] # Canonical
@@ -147,6 +145,10 @@ data "aws_ami" "ubuntu_ami" {
     name = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
+}
+
+data "aws_ec2_instance_type" "instance" {
+  instance_type = var.instance_type
 }
 
 locals {
