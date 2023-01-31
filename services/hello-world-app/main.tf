@@ -11,7 +11,7 @@ module "asg" {
   max_size           = var.max_size
   enable_autoscaling = var.enable_autoscaling
 
-  subnet_ids        = data.aws_subnet_ids.default.ids
+  subnet_ids        = data.aws_subnets.default.ids
   target_group_arns = [aws_lb_target_group.asg.arn]
   health_check_type = "ELB"
 
@@ -22,7 +22,7 @@ module "alb" {
   source = "../../networking/alb"
 
   alb_name   = "hello-world-${var.environment}"
-  subnet_ids = data.aws_subnet_ids.default.ids
+  subnet_ids = data.aws_subnets.default.ids
 }
 
 resource "aws_lb_target_group" "asg" {
@@ -62,8 +62,11 @@ data "aws_vpc" "default" {
   default = true
 }
 
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_vpc.default.id
+data "aws_subnets" "default" {
+  filter {
+    name = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
 }
 
 data "terraform_remote_state" "db" {
