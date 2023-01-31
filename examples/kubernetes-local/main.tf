@@ -5,6 +5,10 @@ module "simple_webapp" {
   image          = "training/webapp"
   replicas       = 2
   container_port = 5000
+
+  environmental_variables = {
+    PROVIDER = "Terraform"
+  }
 }
 
 provider "kubernetes" {
