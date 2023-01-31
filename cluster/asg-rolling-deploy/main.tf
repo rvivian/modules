@@ -1,5 +1,17 @@
+terraform  {
+  required_version = ">= 1.0.0, < 2.0.0"
+  
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+  
+}
+
 resource "aws_launch_configuration" "example" {
-  image_id        = data.aws_ami.ubuntu_ami.id
+  image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
   user_data       = var.user_data
@@ -18,7 +30,7 @@ resource "aws_launch_configuration" "example" {
 resource "aws_autoscaling_group" "example" {
   # Explicitly depend on the launch configuration's name so each time it's 
   # replaced the ASG is also replaced
-  name = "${var.cluster_name}-${aws_launch_configuration.example.name}"
+  name = var.cluster_name
 
   launch_configuration = aws_launch_configuration.example.name
   vpc_zone_identifier  = var.subnet_ids
@@ -29,14 +41,16 @@ resource "aws_autoscaling_group" "example" {
   min_size = var.min_size
   max_size = var.max_size
 
-  # Wait for at least this many instances to pass health checks before
-  # considering the ASG deployment complete
-  min_elb_capacity = var.min_size
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+  }
 
   # When replacing the ASG, create the replacement first, and only delete the
   # original after
   lifecycle {
-    create_before_destroy = true
     postcondition {
       condition = length(self.availability_zones) > 1
       error_message = "You must use more than one AZ for high availabilty!"
@@ -45,12 +59,16 @@ resource "aws_autoscaling_group" "example" {
 
   tag {
     key                 = "Name"
-    value               = "${var.cluster_name}-alg"
+    value               = var.cluster_name
     propagate_at_launch = true
   }
 
   dynamic "tag" {
-    for_each = var.custom_tags
+    for_each = {
+      for key, value in var.custom_tags:
+      key => upper(value)
+      if key != "Name"
+    }
 
     content {
       key                 = tag.key
@@ -67,7 +85,7 @@ resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
   desired_capacity      = 10
   recurrence            = "0 9 * * *"
 
-  autoscaling_group_name = module.webserver_cluster.asg_name
+  autoscaling_group_name = aws_autoscaling_group.example.name
 }
 
 resource "aws_autoscaling_schedule" "scale_in_at_night" {
@@ -77,18 +95,11 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
   desired_capacity      = 2
   recurrence            = "0 17 * * *"
 
-  autoscaling_group_name = module.webserver_cluster.asg_name
+  autoscaling_group_name = aws_autoscaling_group.example.name
 }
 
 resource "aws_security_group" "instance" {
   name = "${var.cluster_name}-instance"
-
-  ingress {
-    from_port   = var.server_port
-    to_port     = var.server_port
-    protocol    = local.tcp_protocol
-    cidr_blocks = local.all_ips
-  }
 }
 
 resource "aws_security_group_rule" "instance" {
@@ -135,16 +146,6 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
   statistic            = "Minimum"
   threshold            = 10
   unit                 = "Count"
-}
-
-data "aws_ami" "ubuntu_ami" {
-  most_recent = true
-  owners = ["099720109477"] # Canonical
-
-  filter {
-    name = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
 }
 
 data "aws_ec2_instance_type" "instance" {

@@ -3,6 +3,10 @@ variable "cluster_name" {
   type        = string
 }
 
+variable "ami" {
+  description = "The AMI to run in the cluster"
+}
+
 variable "instance_type" {
   description = "The type of EC2 Instances to run (e.g. t2.micro)"
   type        = string
