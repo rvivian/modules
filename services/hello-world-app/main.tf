@@ -1,3 +1,14 @@
+terraform {
+  required_version = ">= 1.0.0, < 2.0.0"
+
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
 module "asg" {
   source = "../../cluster/asg-rolling-deploy"
 
@@ -5,7 +16,12 @@ module "asg" {
   ami           = var.ami
   instance_type = var.instance_type
 
-  user_data     = data.template_file.user_data.rendered
+  user_data     = templatefile("${path.module}/user_data.sh", {
+    server_port = var.server_port
+    db_address = data.terraform_remote_state.db.outputs.address
+    db_port = data.terraform_remote_state.db.outputs.port
+    server_text = var.server_text
+  })
 
   min_size           = var.min_size
   max_size           = var.max_size
@@ -76,16 +92,5 @@ data "terraform_remote_state" "db" {
     bucket = var.db_remote_state_bucket
     key    = var.db_remote_state_key
     region = "us-west-2"
-  }
-}
-
-data "template_file" "user_data" {
-  template = file("${path.module}/user_data.sh")
-
-  vars = {
-    server_port = var.server_port
-    db_address  = data.terraform_remote_state.db.outputs.address
-    db_port     = data.terraform_remote_state.db.outputs.port
-    server_text = var.server_text
   }
 }
